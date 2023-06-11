@@ -4,8 +4,7 @@ import BettingContractFactory from './contracts/BettingContractFactory.json';
 import BettingGame from './contracts/BettingGame.json'; 
 import AccountInfo from './AccountInfo';
 import { ethers } from 'ethers';
-import './App.css'; // Import the CSS file
-
+import './App.css';
 
 class BettingApp extends Component {
   
@@ -30,11 +29,10 @@ class BettingApp extends Component {
     await this.loadWeb3();
     await this.loadBlockchainData();
     this.getBetHistory();
-    console.log("dingus")
     if (window.ethereum) {
       window.ethereum.on('accountsChanged', this.accountsChangedListener);
     }
-    this.interval = setInterval(this.refreshGameDetails.bind(this), 1000); // Call refreshGameDetails every 1 second
+    this.interval = setInterval(this.refreshGameDetails.bind(this), 1000); // Call every 1 second
   }
   
   componentWillUnmount() {
@@ -74,7 +72,7 @@ class BettingApp extends Component {
         // Request account access if needed
         await window.ethereum.request({ method: 'eth_requestAccounts' });
       } catch (error) {
-        // User denied account access...
+        // User denied account access
         console.error("User denied account access")
       }
     } else if (window.web3) {
@@ -93,15 +91,13 @@ class BettingApp extends Component {
   
     const networkId = await web3.eth.net.getId();
     const networkData = BettingContractFactory.networks[networkId];
-  
+    
+    // Getting the contract ABI and address
     if (networkData) {
       const contractInstance = new web3.eth.Contract(
         BettingContractFactory.abi,
-        '0x7b52AE61c6C59a16B1C17C305c3EEEb11A954C13' 
+        '0x9c19d41658a1c9be5B07A1f1b5a3CE94c0176332' 
       );
-
-
-      
       this.setState({ contractInstance }, () => console.log("contractInstance set in state", this.state.contractInstance));
     } else {
       console.warn('BettingContractFactory contract not deployed to detected network.');
@@ -120,18 +116,17 @@ class BettingApp extends Component {
     }
   
     let { team1, team2, endTime } = this.state;
-    let bettingEndTime = parseInt(endTime) * 60; // endTime input is considered in minutes from now
+    let bettingEndTime = parseInt(endTime) * 60; // endTime in minutes from current timestamp
     
-    let gameStartTime = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+    let gameStartTime = Math.floor(Date.now() / 1000); 
     this.setState({ gameStartTime, gameDuration: bettingEndTime });
 
     // Call createNewGame from your contract
     this.state.contractInstance.methods.createNewGame(team1, team2, bettingEndTime)
       .send({ from: this.state.account })
       .on('receipt', (receipt) => {
-        // This will be called when the transaction is mined
   
-        // Extract new game address from transaction receipt
+        // Extract the new game address from the transaction
         const newGameAddress = receipt.events.NewGame.returnValues[0];
   
         // Update state with new game address
@@ -148,14 +143,12 @@ class BettingApp extends Component {
         });
       })
       .on('error', (error) => {
-        // This will be called if the transaction fails
         console.error("createNewGame transaction error", error);
       });
   }
   
   betTeam1Win = async () => {
     console.log("betTeam1Win start");
-    
     console.log("bettingGame in state", this.state.bettingGame);
     if (!this.state.bettingGame) {
       console.log("bettingGame is not available in state. Exiting betTeam1Win.");
@@ -163,14 +156,12 @@ class BettingApp extends Component {
     }
     
     try {
-      const betAmount = window.web3.utils.toWei('1', 'Ether'); // Adjust this value as needed
+      const betAmount = window.web3.utils.toWei('1', 'Ether'); // bet Amount is set to 1 Eth
       await this.state.bettingGame.methods.placeBet(0).send({ from: this.state.account, value: betAmount });
-
       console.log("betTeam1Win transaction sent");
     } catch (error) {
       console.error("betTeam1Win error", error);
     }
-    
     console.log("betTeam1Win end");
 }
 
@@ -180,7 +171,7 @@ betTie = async () => {
     return;
   }
   try {
-    const betAmount = window.web3.utils.toWei('1', 'Ether'); // Adjust this value as needed
+    const betAmount = window.web3.utils.toWei('1', 'Ether'); // bet Amount is set to 1 Eth
     await this.state.bettingGame.methods.placeBet(2).send({ from: this.state.account, value: betAmount });
   } catch (error) {
     console.error("betTie error", error);
@@ -189,15 +180,13 @@ betTie = async () => {
 
 betTeam1Lose = async () => {
   console.log("betTeam1Lose start");
-
   console.log("bettingGame in state", this.state.bettingGame);
   if (!this.state.bettingGame) {
     console.log("bettingGame is not available in state. Exiting betTeam1Lose.");
     return;
   }
-
   try {
-    const betAmount = window.web3.utils.toWei('1', 'Ether'); // Adjust this value as needed
+    const betAmount = window.web3.utils.toWei('1', 'Ether'); // // bet Amount is set to 1 Eth
     await this.state.bettingGame.methods.placeBet(1).send({ from: this.state.account, value: betAmount });
 
     console.log("betTeam1Lose transaction sent");
@@ -225,7 +214,7 @@ async refreshGameDetails() {
 
   console.log("refreshGameDetails start");
 
-  // Get updated details of the game
+  // Get the updated details
   const totalBetTeam1Win = await this.state.bettingGame.methods.totalBetTeam1Win().call();
   const totalBetTeam1Lose = await this.state.bettingGame.methods.totalBetTeam1Lose().call();
   const totalBetTie = await this.state.bettingGame.methods.totalBetTie().call();
@@ -233,12 +222,11 @@ async refreshGameDetails() {
   const team2Name = await this.state.bettingGame.methods.team2().call();
   const ownerAddress = await this.state.bettingGame.methods.getOwner().call();
   // console.log("NO00000000000000000000000000000000000000000000000")
-  // const bigOwner = await this.state.bettingGame.methods.getOwner().call();
   
   const { gameStartTime, gameDuration } = this.state;
   const currentUnixTimestamp = Math.floor(Date.now() / 1000); // Current timestamp in seconds
   const contractEndTime = gameStartTime + gameDuration;
-  const timeLeft = contractEndTime - currentUnixTimestamp; // in seconds
+  const timeLeft = contractEndTime - currentUnixTimestamp;
   this.getBetHistory();
 
   this.state.bettingGame.methods.getBetHistory(this.state.account).call()
@@ -250,14 +238,10 @@ async refreshGameDetails() {
     console.error("Error fetching bet history", error);
   });
 
-
-
-
   // Update state with the updated game details
   this.setState({ totalBetTeam1Win, totalBetTeam1Lose, totalBetTie, team1Name, team2Name, timeLeft, ownerAddress});
 }
 
-// Update the endBetting function to use the newGameAddress
 endBetting = async () => {
   try {
     // Make sure web3 is initialized
@@ -267,14 +251,8 @@ endBetting = async () => {
     }
 
     const { newGameAddress, selectedWinningTeam } = this.state;
-
-    // Create a new instance of the game contract using the newGameAddress
     const gameContract = new window.web3.eth.Contract(BettingGame.abi, newGameAddress);
-
-    // Convert the selected winning team to the corresponding enum value
     const winningTeamEnum = parseInt(selectedWinningTeam);
-
-    // Call endBetting from the game contract
     await gameContract.methods.endBetting(winningTeamEnum).send({ from: this.state.account });
 
     console.log("endBetting transaction sent");
@@ -305,19 +283,15 @@ claimReward = async () => {
   }
 }
 
-
-
-
 handleWinnerSelection = (event) => {
   this.setState({ selectedWinningTeam: event.target.value });
 }
 
-
-  handleInputChange = (event) => {
-    this.setState({
-      [event.target.name]: event.target.value
-    });
-  }
+handleInputChange = (event) => {
+  this.setState({
+    [event.target.name]: event.target.value
+  });
+}
 
   render() {
     const { selectedWinningTeam } = this.state;
@@ -377,16 +351,10 @@ handleWinnerSelection = (event) => {
     ))}
   </div>
 </div>
-
-
-
-      
-      
-      
-      </div>      
+</div>
+           
     );
   }
-  
 }
 
 export default BettingApp;
